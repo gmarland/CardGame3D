@@ -1,0 +1,187 @@
+﻿CREATE Table Scenario (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	Name NVARCHAR(MAX) NOT NULL,
+	SequenceNo INT NOT NULL
+);
+
+CREATE TABLE Location (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	ScenarioId INT NOT NULL,
+	Title NVARCHAR(MAX) NOT NULL,
+	RevealedDescription NVARCHAR(MAX) NOT NULL,
+	StartingLocation BIT NOT NULL DEFAULT(0),
+	NoOfTokens INT NOT NULL,
+	XPos INT NOT NULL,
+	YPos INT NOT NULL
+);
+	
+ALTER TABLE Location ADD FOREIGN KEY (ScenarioId) REFERENCES Scenario(Id);
+
+CREATE TABLE LocationConnection (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ScenarioId INT NOT NULL,
+	SourceLocationId INT NOT NULL,
+	TargetLocationId INT NOT NULL
+)
+
+ALTER TABLE LocationConnection ADD FOREIGN KEY (ScenarioId) REFERENCES Scenario(Id);
+ALTER TABLE LocationConnection ADD FOREIGN KEY (SourceLoctionId) REFERENCES Location(Id);
+ALTER TABLE LocationConnection ADD FOREIGN KEY (TargetLocationId) REFERENCES Location(Id);
+
+CREATE TABLE Act (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	ScenarioId INT NOT NULL,
+	Title NVARCHAR(MAX) NOT NULL,
+	Description NVARCHAR(MAX) NOT NULL,
+	Completion NVARCHAR(MAX) NOT NULL,
+	RequiredTokens INT NOT NULL,
+	SequenceNo INT NOT NULL
+);
+	
+ALTER TABLE Act ADD FOREIGN KEY (ScenarioId) REFERENCES Scenario(Id);
+
+CREATE TABLE Agenda (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	ScenarioId INT NOT NULL,
+	Title NVARCHAR(MAX) NOT NULL,
+	Description NVARCHAR(MAX) NOT NULL,
+	Completion NVARCHAR(MAX) NOT NULL,
+	RequiredTokens INT NOT NULL,
+	SequenceNo INT NOT NULL
+);
+	
+ALTER TABLE Agenda ADD FOREIGN KEY (ScenarioId) REFERENCES Scenario(Id);
+
+CREATE TABLE Player (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	Name NVARCHAR(MAX) NOT NULL,
+	Strength INT NOT NULL DEFAULT(0),
+	Health INT NOT NULL DEFAULT(0),
+	Sanity INT NOT NULL DEFAULT(0),
+	ResourcesPerTurn INT NOT NULL DEFAULT(3)
+);
+
+CREATE TABLE Card (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	Title NVARCHAR(MAX) NOT NULL,
+	Description NVARCHAR(MAX) NOT NULL
+);
+
+CREATE TABLE GameScenario (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	ScenarioId INT NOT NULL,
+	ActId INT NOT NULL,
+	AgendaId INT NOT NULL,
+	TurnNo INT NOT NULL DEFAULT(1),
+	CurrentActor NVARCHAR(50) NULL,
+	CurrentActorType NVARCHAR(50) NULL,
+	ActionsUsed INT NOT NULL DEFAULT(0),
+	ActTokens INT NOT NULL DEFAULT(0),
+	AgendaTokens INT NOT NULL DEFAULT(0),
+	DateStarted DATETIME NOT NULL DEFAULT(GETDATE())
+);
+
+ALTER TABLE GameScenario ADD FOREIGN KEY (ScenarioId) REFERENCES Scenario(Id);
+ALTER TABLE GameScenario ADD FOREIGN KEY (ActId) REFERENCES Act(Id);
+ALTER TABLE GameScenario ADD FOREIGN KEY (AgendaId) REFERENCES Agenda(Id);
+
+CREATE TABLE PlayerGameScenario (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	PlayerId INT NOT NULL,
+	GameScenarioId INT NOT NULL,
+	LocationId INT NULL,
+	Resources INT NOT NULL DEFAULT(3),
+	Ready BIT NOT NULL DEFAULT(0)
+);
+	
+ALTER TABLE PlayerGameScenario ADD FOREIGN KEY (PlayerId) REFERENCES Player(Id);
+ALTER TABLE PlayerGameScenario ADD FOREIGN KEY (GameScenarioId) REFERENCES GameScenario(Id);
+
+CREATE TABLE GameScenarioLocationTokenRetrieved (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	GameScenarioId INT NOT NULL,
+	PlayerGameScenarioId INT NOT NULL,
+	LocationId INT NULL
+);
+	
+ALTER TABLE GameScenarioLocationTokenRetrieved ADD FOREIGN KEY (GameScenarioId) REFERENCES GameScenario(Id);
+ALTER TABLE GameScenarioLocationTokenRetrieved ADD FOREIGN KEY (PlayerGameScenarioId) REFERENCES PlayerGameScenario(Id);
+ALTER TABLE GameScenarioLocationTokenRetrieved ADD FOREIGN KEY (LocationId) REFERENCES Location(Id);
+
+CREATE TABLE PlayerCard (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	PlayerId INT NOT NULL,
+	CardId INT NOT NULL
+);
+	
+ALTER TABLE PlayerCard ADD FOREIGN KEY (PlayerId) REFERENCES Player(Id);
+ALTER TABLE PlayerCard ADD FOREIGN KEY (CardId) REFERENCES Card(Id);
+
+CREATE TABLE PlayerGameScenarioCard (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	PlayerGameScenarioId INT NOT NULL,
+	CardId INT NOT NULL,
+	SequenceNo INT NOT NULL
+);
+	
+ALTER TABLE PlayerGameScenarioCard ADD FOREIGN KEY (PlayerGameScenarioId) REFERENCES PlayerGameScenario(Id);
+ALTER TABLE PlayerGameScenarioCard ADD FOREIGN KEY (CardId) REFERENCES Card(Id);
+
+CREATE TABLE PlayerHand (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	PlayerGameScenarioId INT NOT NULL,
+	CardId INT NOT NULL,
+	SequenceNo INT NOT NULL
+);
+	
+ALTER TABLE PlayerHand ADD FOREIGN KEY (PlayerGameScenarioId) REFERENCES PlayerGameScenario(Id);
+ALTER TABLE PlayerHand ADD FOREIGN KEY (CardId) REFERENCES Card(Id);
+
+CREATE TABLE PlayerGrave (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	PlayerGameScenarioId INT NOT NULL,
+	CardId INT NOT NULL,
+	SequenceNo INT NOT NULL
+);
+	
+ALTER TABLE PlayerGrave ADD FOREIGN KEY (PlayerGameScenarioId) REFERENCES PlayerGameScenario(Id);
+ALTER TABLE PlayerGrave ADD FOREIGN KEY (CardId) REFERENCES Card(Id);
+
+CREATE TABLE Enemy (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	Type NVARCHAR(MAX) NOT NULL,
+	Name NVARCHAR(MAX) NOT NULL,
+	Description NVARCHAR(MAX) NOT NULL,
+	Health INT NOT NULL DEFAULT(1),
+	StrengthDamage INT NOT NULL DEFAULT(1),
+	SanityDamage INT NOT NULL DEFAULT(1)
+);
+
+CREATE TABLE EnemyAbility (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	EnemyId INT NOT NULL,
+	Name NVARCHAR(250) NOT NULL
+);
+
+ALTER TABLE EnemyAbility ADD FOREIGN KEY (EnemyId) REFERENCES Enemy(Id);
+
+CREATE TABLE GameScenarioEnemy (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+	ExternalId NVARCHAR(50) NOT NULL,
+	GameScenarioId INT NOT NULL,
+	EnemyId INT NOT NULL,
+	LocationId INT NULL,
+	Health INT NOT NULL DEFAULT(1)
+);
+	
+ALTER TABLE GameScenarioEnemy ADD FOREIGN KEY (GameScenarioId) REFERENCES GameScenario(Id);
+ALTER TABLE GameScenarioEnemy ADD FOREIGN KEY (EnemyId) REFERENCES Enemy(Id);
+ALTER TABLE GameScenarioEnemy ADD FOREIGN KEY (LocationId) REFERENCES Location(Id);

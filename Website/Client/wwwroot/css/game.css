@@ -1,0 +1,255 @@
+﻿/* Act and agenda totems */
+
+    #act-container,
+    #agenda-container,
+    #actor-container {
+        position: fixed;
+        top: 20px;
+        height: 115px;
+        background: #ececec;
+        border-radius: 3px;
+        border: 1px solid #cecece;
+    }
+
+    #act-container,
+    #agenda-container {
+        width: 90px;
+    }
+
+    #actor-container {
+        width: 100px;
+    }
+
+    #act-container {
+        left: 20px;
+    }
+
+    #agenda-container {
+        left: 125px;
+    }
+
+    #actor-container {
+        left: 230px;
+    }
+
+    #act-container .title,
+    #agenda-container .title,
+    #actor-container .title {
+        position: absolute;
+        top: 0px;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        background: #ececec;
+        border: 2px solid #cecece;
+        padding: 3px 8px;
+        font-weight: bold;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+
+    #act-container .current-no,
+    #agenda-container .current-no {
+        position: absolute;
+        bottom: 0px;
+        left: 50%;
+        transform: translate(-50%, 50%);
+        width: 25px;
+        height: 25px;
+        text-align: center;
+        line-height: 28px;
+        background: #ececec;
+        border-radius: 50%;
+        border: 2px solid #cecece;
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+    #actor-container #actor-action-counter-container {
+        position: absolute;
+        bottom: 0px;
+        height: 20px;
+        width: 100%;
+        transform: translateY(50%);
+    }
+
+    #actor-container #actor-action-counter-container .actor-action-counter {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid #cecece;
+        background-color: #222222;
+    }
+    
+    #actor-container #actor-action-counter-container .actor-action-counter.available {
+        background-color: #00ff00;
+    }
+
+    #actor-container #actor-action-counter-container #actor-action-counter_1 {
+        left: 3px;
+    }
+
+    #actor-container #actor-action-counter-container #actor-action-counter_2 {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    #actor-container #actor-action-counter-container #actor-action-counter_3 {
+        right: 3px;
+    }
+
+    .act-content {
+        position: relative;
+        width: 70%;
+        height: 100%;
+    }
+
+    .act-content .act-number {
+        padding: 4px;
+        text-align: center;
+    }
+
+    .act-content .act-title {
+        padding: 4px;
+        text-align: center;
+    }
+
+    .act-content .act-description {
+        padding: 8px;
+    }
+
+    .act-content .act-tokens-required {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .act-main-image {
+        position: relative;
+        width: 70%;
+    }
+
+/* Scenario details */
+
+    #game-scenario-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+    }
+
+    .stat-container {
+        margin-bottom: 15px;
+    }
+
+    .stat-container .title {
+        width: 50px;
+        padding: 7px 10px;
+        background: #ececec;
+        border-top-left-radius: 3px;
+        border-bottom-left-radius: 3px;
+    }
+
+    .stat-container .progress-container {
+        width: 150px;
+    }
+
+    .stat-container .progress-outer {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+        height: 20px;
+        background: #666666;
+    }
+
+    .stat-container .count-container {
+        width: 40px;
+        text-align: center;
+    }
+
+    .stat-container .count-container .inner-container {
+        width: 35px;
+        margin-top: -3px;
+        margin-bottom: -3px;
+        font-weight: bold;
+        text-align: center;
+        line-height: 35px;
+        background: #ececec;
+        border: 2px solid #cecece;
+    }
+
+/* Player totem */
+
+    #player-totem {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+    }
+    
+    #player-totem #strength-container,
+    #player-totem #sanity-container, 
+    #player-totem #resources-container  {
+        position: absolute;
+        text-align: center;
+        background: #ececec;
+        border-radius: 3px;
+        border: 1px solid #cecece;
+        font-weight: bold;
+        font-size: 18px;
+        padding: 4px 8px
+    }
+
+    #player-totem #strength-container {
+        top: 0px;
+        right: 115px;
+    }
+
+    #player-totem #sanity-container {
+        top: 44px;
+        right: 115px;
+    }
+
+    #player-totem #resources-container {
+        top: 87px;
+        right: 115px;
+    }
+
+    #player-image {
+        width: 100px;
+        height: 115px;
+        background: #ececec;
+        border-radius: 3px;
+        border: 2px solid #cecece;
+    }
+
+/* Deck layout */
+
+    #player-hand {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        margin: 0px;
+        list-style-type: none;
+    }
+
+    #player-hand li {
+        position: relative;
+        float: left;
+        margin-left: -20px;
+        width: 75px;
+        height: 115px;
+    }
+
+    #player-hand li:hover {
+        margin-right: 30px;
+    }
+
+    #player-hand .player-hand-card {
+        width: 75px;
+        height: 115px;
+        background: #ececec;
+        border-radius: 3px;
+        border: 1px solid #cecece;
+        cursor: pointer;
+    }

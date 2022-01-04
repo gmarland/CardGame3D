@@ -1,0 +1,15 @@
+﻿@using CardGame.Models
+
+@if (Cards != null)
+{ 
+    <ul id="player-hand">
+        @for (int i=0; i<Cards.Count; i++)
+        { 
+            <HandCard CardIndex="@i" Card="@Cards[i]"></HandCard> 
+        }
+    </ul>
+}
+@code {
+    [Parameter]
+    public IList<PlayerCard> Cards { get; set; }
+}

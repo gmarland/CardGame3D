@@ -1,0 +1,40 @@
+﻿@using CardGame.Models
+
+@if ((GameScenario != null) && (Act != null) && (Agenda != null) && (Players != null))
+{
+<div id="game-scenario-container">
+    <div class="left">
+        <div class="stat-container table">
+            <div class="row">
+                <div class="title cell">Act</div>
+                <div class="count-container cell relative"><div class="inner-container">@GameScenario.ActTokens</div></div>
+                <div class="progress-container cell relative"><div class="progress-outer"></div></div>
+                <div class="count-container cell relative"><div class="inner-container">@Act.RequiredTokens</div></div>
+            </div>
+        </div>
+        <div class="stat-container table">
+            <div class="row">
+                <div class="title cell">Agenda</div>
+                <div class="count-container cell relative"><div class="inner-container">@GameScenario.AgendaTokens</div></div>
+                <div class="progress-container cell relative"><div class="progress-outer"></div></div>
+                <div class="count-container cell relative"><div class="inner-container">@Agenda.RequiredTokens</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="clear"></div>
+</div>
+}
+
+@code {
+    [Parameter]
+    public GameScenario GameScenario { get; set; }
+
+    [Parameter]
+    public Act Act { get; set; }
+
+    [Parameter]
+    public Agenda Agenda { get; set; }
+
+    [Parameter]
+    public IList<Player> Players { get; set; }
+}

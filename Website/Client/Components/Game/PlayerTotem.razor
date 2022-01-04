@@ -1,0 +1,15 @@
+﻿@using CardGame.Models
+
+@if (Player != null)
+{
+    <div id="player-totem">
+        <div id="strength-container">@Player.Strength</div>
+        <div id="sanity-container">@Player.Sanity</div>
+        <div id="resources-container">@Player.Resources</div>
+        <div id="player-image"></div>
+    </div>
+}
+@code {
+    [Parameter]
+    public Player Player { get; set; }
+}

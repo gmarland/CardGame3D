@@ -1,0 +1,42 @@
+﻿@using CardGame.Models
+
+@if (Agenda != null)
+{
+    <div id="agenda-container" @onclick="SetCardVisible">
+        <div class="title">Agenda</div>
+        <div class="current-no">@Agenda.SequenceNo</div>
+    </div>
+
+    @if (CardVisible)
+    {
+        <div class="modal-overlay">
+            <div class="horizontal-card">
+                <div class="act-content left">
+                    <div class="act-number">Agenda @Agenda.SequenceNo</div>
+                    <div class="act-title">@Agenda.Title</div>
+                    <div class="act-description">@Agenda.Description<div class="act-tokens-required">@Agenda.RequiredTokens</div></div>
+                </div>
+                <div class="act-main-image left"></div>
+                <div class="clear"></div>
+                <div class="close-modal-button selectable" @onclick="SetCardHidden">X</div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Agenda Agenda { get; set; }
+
+    private bool CardVisible = false;
+
+    private void SetCardVisible()
+    {
+        CardVisible = true;
+    }
+
+    private void SetCardHidden()
+    {
+        CardVisible = false;
+    }
+}

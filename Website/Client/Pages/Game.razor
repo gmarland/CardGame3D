@@ -1,0 +1,257 @@
+﻿@page "/"
+@using CardGame.Models
+@using Website.Client.Components.Game
+@using System.Net;
+@using System.Net.Http
+@using Website.Client.Helpers;
+@using Microsoft.AspNetCore.SignalR.Client;
+@using Microsoft.Extensions.Logging;
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<BlzGame @ref="_blzGame"></BlzGame>
+
+@code {
+    public string GameScenarioId { get; set; } = "321";
+
+    private static BlzGame _blzGame;
+
+    private HubConnection _hubConnection;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            HttpResponseMessage gameScenarioResponse = await Http.GetAsync($"GameScenario/{GameScenarioId}");
+
+            if (gameScenarioResponse.StatusCode == HttpStatusCode.OK)
+            {
+                _blzGame.SetGameScenario(await gameScenarioResponse.Content.ReadAsAsync<GameScenario>());
+
+                HttpResponseMessage playerResponse = await Http.GetAsync($"me/{GameScenarioId}");
+
+                if (playerResponse.StatusCode == HttpStatusCode.OK)
+                {
+                    _blzGame.SetActivePlayer(await playerResponse.Content.ReadAsAsync<Player>());
+
+                    await SetupSignalR();
+
+                    HttpResponseMessage actsResponse = await Http.GetAsync($"Acts/{GameScenarioId}");
+
+                    if (actsResponse.StatusCode == HttpStatusCode.OK)
+                    {
+                        await _blzGame.AddActs(await actsResponse.Content.ReadAsAsync<List<Act>>());
+                    }
+
+                    HttpResponseMessage agendasResponse = await Http.GetAsync($"Agendas/{GameScenarioId}");
+
+                    if (agendasResponse.StatusCode == HttpStatusCode.OK)
+                    {
+                        await _blzGame.AddAgendas(await agendasResponse.Content.ReadAsAsync<List<Agenda>>());
+                    }
+
+                    HttpResponseMessage locationsResponse = await Http.GetAsync($"Locations/{GameScenarioId}");
+
+                    if (locationsResponse.StatusCode == HttpStatusCode.OK)
+                    {
+                        await _blzGame.AddLocations(await locationsResponse.Content.ReadAsAsync<List<Location>>());
+
+                        HttpResponseMessage playersResponse = await Http.GetAsync($"Players/{GameScenarioId}");
+
+                        if (playersResponse.StatusCode == HttpStatusCode.OK)
+                        {
+                            await _blzGame.AddPlayers(await playersResponse.Content.ReadAsAsync<List<Player>>());
+                        }
+
+                        HttpResponseMessage enemiesResponse = await Http.GetAsync($"Enemys/{GameScenarioId}");
+
+                        if (enemiesResponse.StatusCode == HttpStatusCode.OK)
+                        {
+                            await _blzGame.AddEnemies(await enemiesResponse.Content.ReadAsAsync<List<Enemy>>());
+                        }
+
+                        await _blzGame.ShowSelectedActor();
+
+                        HttpResponseMessage playerCardsResponse = await Http.GetAsync($"PlayerCards");
+
+                        if (playerCardsResponse.StatusCode == HttpStatusCode.OK)
+                        {
+                            _blzGame.AddPlayerCards(await playerCardsResponse.Content.ReadAsAsync<List<PlayerCard>>());
+                        }
+
+                        if (_blzGame.GetTurnNo() != 0)
+                        {
+                            HttpResponseMessage playerDeckResponse = await Http.GetAsync($"PlayerDeck/{GameScenarioId}");
+
+                            if (playerDeckResponse.StatusCode == HttpStatusCode.OK)
+                            {
+                                _blzGame.BuildPlayerDeck(await playerDeckResponse.Content.ReadAsAsync<List<string>>());
+                            }
+
+                            HttpResponseMessage playerHandResponse = await Http.GetAsync($"PlayerHand/{GameScenarioId}");
+
+                            if (playerHandResponse.StatusCode == HttpStatusCode.OK)
+                            {
+                                _blzGame.BuildPlayerHand(await playerHandResponse.Content.ReadAsAsync<List<string>>());
+                            }
+
+                            HttpResponseMessage playerGraveResponse = await Http.GetAsync($"PlayerGrave/{GameScenarioId}");
+
+                            if (playerGraveResponse.StatusCode == HttpStatusCode.OK)
+                            {
+                                _blzGame.BuildPlayerGraveyard(await playerGraveResponse.Content.ReadAsAsync<List<string>>());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task SetupSignalR()
+    {
+        _hubConnection = new HubConnectionBuilder()
+        .WithUrl(GameSignalRMessaging.GetEndpoint() + $"?gameId={GameScenarioId}").ConfigureLogging(logging =>
+        {
+            logging.SetMinimumLevel(LogLevel.Trace);
+        })
+        .Build();
+
+        _hubConnection.On<int, string>("SetTurnNo", async (int turnNo, string playerId) =>
+        {
+            Console.WriteLine("Setting turn number " + turnNo);
+
+            _blzGame.SetTurnNo(turnNo, playerId);
+        });
+
+        _hubConnection.On<string, string>("SetCurrentActor", async (string actorId, string actorType) =>
+        {
+            Console.WriteLine("Setting current actor " + actorId);
+
+            _blzGame.SetCurrentActor(actorId, actorType);
+        });
+
+        _hubConnection.On<string, string>("SetPlayerLocation", async (string playerId, string locationId) =>
+        {
+            Console.WriteLine($"Setting player location {playerId}: {locationId}");
+
+            await _blzGame.SetPlayerLocation(playerId, locationId);
+        });
+
+        _hubConnection.On<string, string, int>("PlayerDamagesEnemy", async (string playerId, string enemyId, int newHealth) =>
+        {
+            Console.WriteLine($"Player {playerId} damages enemy {enemyId}. New health {newHealth}");
+
+            await _blzGame.PlayerDamagesEnemy(enemyId, playerId, newHealth);
+        });
+
+        _hubConnection.On<string, string, int, int>("EnemyDamagesPlayer", async(string enemyId, string playerId, int newHealth, int newSanity) =>
+        {
+            Console.WriteLine($"Enemy {enemyId} damages player {playerId}.  New health {newHealth}.  New sanity {newSanity}");
+
+            await _blzGame.EnemyDamagesPlayer(enemyId, playerId, newHealth, newSanity);
+        });
+
+        _hubConnection.On<string, string>("EnemyKillsPlayer", async (string enemyId, string playerId) =>
+        {
+            Console.WriteLine($"Player {playerId} killed by enemy {enemyId}");
+        });
+
+        _hubConnection.On<string, string>("DeleteEnemy", async (string playerId, string enemyId) =>
+        {
+            Console.WriteLine($"Enemy {enemyId} killed by player {playerId}");
+        });
+
+        _hubConnection.On<string, string>("SetEnemyLocation", async (string enemyId, string locationId) =>
+        {
+            Console.WriteLine($"Setting enemy location {enemyId}: {locationId}");
+
+            await _blzGame.SetEnemyLocation(enemyId, locationId);
+        });
+
+        _hubConnection.On<string, string, int>("ActTokenIncreased", async (string actId, string locationId, int tokens) =>
+        {
+            Console.WriteLine($"Setting act tokens {locationId}, {actId}: {tokens}");
+
+            await _blzGame.SetActTokenIncreased(locationId, actId, tokens);
+        });
+
+        _hubConnection.On<string, string>("ActProgressed", async (string locationId, string actId) =>
+        {
+            Console.WriteLine($"Setting act to {locationId} {actId}");
+
+            await _blzGame.SetActProgressed(locationId, actId);
+        });
+
+        _hubConnection.On("ActsComplete", () =>
+        {
+            Console.WriteLine("All acts complete");
+        });
+
+        _hubConnection.On<string, int>("AgendaTokenIncreased", async (string agendaId, int tokens) =>
+        {
+            Console.WriteLine("Setting agenda tokens " + agendaId + ": " + tokens);
+
+            await _blzGame.SetAgendaTokenIncreased(agendaId, tokens);
+        });
+
+        _hubConnection.On<string>("AgendaProgressed", async (string agendaId) =>
+        {
+            Console.WriteLine("Setting agenda to " + agendaId);
+
+            await _blzGame.SetAgendaProgressed(agendaId);
+        });
+
+        _hubConnection.On("AgendasComplete", () =>
+        {
+            Console.WriteLine("All agendas complete");
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    [JSInvokable]
+    public static async Task SearchPlayerLocation(string playerId, string locationId)
+    {
+        if ((_blzGame.ActivePlayer != null) && (playerId == _blzGame.ActivePlayer.ID))
+        {
+            if (_blzGame.IsCurrrentLocation(playerId, locationId))
+            {
+                await _blzGame.StoreActToken(playerId, locationId);
+            }
+        }
+    }
+
+    [JSInvokable]
+    public static async Task MovePlayerLocation(string playerId, string locationId)
+    {
+        if ((_blzGame.ActivePlayer != null) && (playerId == _blzGame.ActivePlayer.ID))
+        {
+            if (!_blzGame.IsCurrrentLocation(playerId, locationId))
+            {
+                await _blzGame.StorePlayerLocation(playerId, locationId);
+            }
+        }
+    }
+
+    [JSInvokable]
+    public static async Task ApplyDamageToEnemy(string playerId, string enemyId)
+    {
+        if ((_blzGame.ActivePlayer != null) && (playerId == _blzGame.ActivePlayer.ID))
+        {
+            await _blzGame.StorePlayerDamageToEnemy(playerId, enemyId);
+        }
+    }
+
+    public void Dispose()
+    {
+        _ = _hubConnection.DisposeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Console.WriteLine("Disposing");
+
+        if (_hubConnection != null) await _hubConnection.DisposeAsync();
+    }
+}

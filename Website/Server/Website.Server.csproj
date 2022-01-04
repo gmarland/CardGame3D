@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Game.Helpers\Game.Helpers.csproj" />
+    <ProjectReference Include="..\..\Game.Logging\Game.Logging.csproj" />
+    <ProjectReference Include="..\..\Game.SL\Game.SL.csproj" />
+    <ProjectReference Include="..\Client\Website.Client.csproj" />
+    <ProjectReference Include="..\Shared\Website.Shared.csproj" />
+  </ItemGroup>
+
+
+</Project>

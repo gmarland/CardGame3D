@@ -1,0 +1,53 @@
+﻿@using CardGame.Models
+@inject IJSRuntime JSRuntime
+
+@if (Card != null)
+{
+    <li>
+        <div class="player-hand-card" @onclick="SetCardVisible"></div>
+    </li>
+    if (CardVisible)
+    {
+        <div class="modal-overlay">
+            <div class="vertical-card">
+                <div class="card-title">@Card.Title</div>
+                <div class="card-description">@Card.Description</div>
+                <div class="close-modal-button selectable" @onclick="SetCardHidden">X</div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int CardIndex { get; set; }
+
+    [Parameter]
+    public PlayerCard Card { get; set; }
+
+    private bool CardVisible = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("bindCards");
+        }
+    }
+
+    private void SetCardVisible()
+    {
+        CardVisible = true;
+    }
+
+    private void SetCardHidden()
+    {
+        CardVisible = false;
+    }
+
+    [JSInvokable]
+    public static string CallThis()
+    {
+        return "HI";
+    }
+}

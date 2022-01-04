@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CardGame</title>
+    <base href="/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet">
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="css/game.css" rel="stylesheet" />
+    <script type="text/javascript" src="/lib/jquery/jquery.js"></script>
+    <script type="text/javascript" src="/lib/jqueryui/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="/lib/three.js/three.js"></script>
+    <script type="text/javascript" src="/lib/three.line/LineSegmentsGeometry.js"></script>
+    <script type="text/javascript" src="/lib/three.line/LineSegments2.js"></script>
+    <script type="text/javascript" src="/lib/three.line/LineGeometry.js"></script>
+    <script type="text/javascript" src="/lib/three.line/LineMaterial.js"></script>
+    <script type="text/javascript" src="/lib/three.line/Line2.js"></script>
+
+    <script type="text/javascript" src="/lib/game/elements/table.js"></script>
+    <script type="text/javascript" src="/lib/game/elements/location.js"></script>
+    <script type="text/javascript" src="/lib/game/elements/locationConnection.js"></script>
+    <script type="text/javascript" src="/lib/game/elements/card.js"></script>
+    <script type="text/javascript" src="/lib/game/elements/player.js"></script>
+    <script type="text/javascript" src="/lib/game/elements/enemy.js"></script>
+
+    <script type="text/javascript" src="/lib/game/camera.js"></script>
+    <script type="text/javascript" src="/lib/game/lighting-rig.js"></script>
+    <script type="text/javascript" src="/lib/game/renderer.js"></script>
+    <script type="text/javascript" src="/lib/game/scene.js"></script>
+    <script type="text/javascript" src="/lib/game/game.js"></script>
+</head>
+
+<body>
+    <script>
+        function bindCards() {
+            var that = this;
+
+            try {
+                this.$("#player-hand").sortable("destroy");
+            }
+            catch (err) { }
+
+            this.$("#player-hand").sortable({
+                stop: function (event, ui) {
+                }
+            });
+        }
+
+        function cardDragged() {
+            DotNet.invokeMethodAsync('Website.Client', 'CallThis')
+            .then(data => {
+                console.log(data);
+            });
+        }
+
+        function searchPlayerLocation(playerId, locationId) {
+            DotNet.invokeMethodAsync('Website.Client', 'SearchPlayerLocation', playerId, locationId);
+        }
+
+        function movePlayerLocation(playerId, locationId) {
+            DotNet.invokeMethodAsync('Website.Client', 'MovePlayerLocation', playerId, locationId);
+        }
+
+        function applyDamageToEnemy(playerId, enemyId) {
+            DotNet.invokeMethodAsync('Website.Client', 'ApplyDamageToEnemy', playerId, enemyId);
+        }
+    </script>
+
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+﻿@using CardGame.Models
+
+@if ((GameScenario != null) && (Players != null) && (Enemies != null))
+{
+    <div id="actor-container">
+        <div class="title">Active</div>
+        @if (IsActorPlayer)
+        {
+            <div id="actor-action-counter-container">
+                <div id="actor-action-counter_1" class="actor-action-counter @(OneActionsAvailable ? "available" : "")">&nbsp;</div>
+                <div id="actor-action-counter_2" class="actor-action-counter @(TwoActionsAvailable ? "available" : "")">&nbsp;</div>
+                <div id="actor-action-counter_3" class="actor-action-counter @(ThreeActionsAvailable ? "available" : "")">&nbsp;</div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public GameScenario GameScenario { get; set; }
+
+    [Parameter]
+    public IList<Player> Players { get; set; }
+
+    [Parameter]
+    public IList<Enemy> Enemies { get; set; }
+
+    private bool ThreeActionsAvailable
+    {
+        get
+        {
+            return (GameScenario.ActionsUsed == 0);
+        }
+    }
+
+    private bool TwoActionsAvailable
+    {
+        get
+        {
+            return (GameScenario.ActionsUsed <= 1);
+        }
+    }
+
+    private bool OneActionsAvailable
+    {
+        get
+        {
+            return (GameScenario.ActionsUsed <= 2);
+        }
+    }
+
+    private bool IsActorPlayer
+    {
+        get
+        {
+            return GameScenario.CurrentActorType.Equals("player", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}

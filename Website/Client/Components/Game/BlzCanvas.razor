@@ -1,0 +1,72 @@
+﻿@using System.Timers
+@using CardGame.Models
+@inject IJSRuntime JSRuntime
+
+<div id="game-container"></div>
+
+@code {
+
+    public string Canvas { get; set; }
+
+    private Timer _eventInputTimer = new Timer();
+
+    private bool _retrievingInputs = false;
+
+    public async Task AddLocation(Location location)
+    {
+        await JSRuntime.InvokeVoidAsync("addLocation", location.ID, location.Title, location.XPos, location.YPos);
+    }
+
+    public async Task AddLocationConnection(LocationConnection locationConnection)
+    {
+        await JSRuntime.InvokeVoidAsync("addLocationConnection", locationConnection.SourceLocationId, locationConnection.TargetLocationId);
+    }
+
+    public async Task AddPlayer(Location location, Player player)
+    {
+        await JSRuntime.InvokeVoidAsync("addPlayer", location.ID, player.ID, player.Name);
+    }
+
+    public async Task AddEnemy(Location location, Enemy enemy)
+    {
+        await JSRuntime.InvokeVoidAsync("addEnemy", location.ID, enemy.ID, enemy.Name);
+    }
+
+    public async Task RecenterLocations()
+    {
+        await JSRuntime.InvokeVoidAsync("recenterLocations");
+    }
+
+    public async Task SetPlayerLocation(string playerId, string locationId)
+    {
+        await JSRuntime.InvokeVoidAsync("setPlayerLocation", playerId, locationId);
+    }
+
+    public async Task SetEnemyLocation(string enemyId, string locationId)
+    {
+        await JSRuntime.InvokeVoidAsync("setEnemyLocation", enemyId, locationId);
+    }
+
+    public async Task ShowSelectedActor(string currentActor, string currentActorType)
+    {
+        if (currentActorType == "player") await JSRuntime.InvokeVoidAsync("showPlayerSelected", currentActor);
+        else await JSRuntime.InvokeVoidAsync("showEnemySelected", currentActor);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("startGame");
+
+            _eventInputTimer.Interval = 0.01;
+            _eventInputTimer.AutoReset = true;
+            _eventInputTimer.Elapsed += new ElapsedEventHandler(EventInputTimerElapsed);
+            _eventInputTimer.Start();
+        }
+    }
+
+    private async void EventInputTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+    }
+}

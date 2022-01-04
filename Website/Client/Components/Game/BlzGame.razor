@@ -1,0 +1,439 @@
+﻿@using CardGame.Models
+@using Website.Client.Extensions;
+@using System.Net;
+@using Website.Shared.Controllers;
+@inject HttpClient Http
+
+<CurrentAct Act="@_currentAct"></CurrentAct>
+<CurrentAgenda Agenda="@_currentAgenda"></CurrentAgenda>
+<CurrentActor GameScenario="@_gameScenario" Players="@_players" Enemies="@_enemies"></CurrentActor>
+<PlayerHand Cards="@_hand"></PlayerHand>
+<PlayerTotem Player="@ActivePlayer"></PlayerTotem>
+<StateDialog GameScenario="@_gameScenario" Act="@_currentAct" Agenda="@_currentAgenda" Players="@_players"></StateDialog>
+<BlzCanvas @ref="_blzCanvas"></BlzCanvas>
+
+@code {
+    private BlzCanvas _blzCanvas;
+
+    // Game objects
+
+    private GameScenario _gameScenario = null;
+
+    private Act _currentAct = null;
+    private Agenda _currentAgenda = null;
+
+    private IList<Act> _acts = new List<Act>();
+    private IList<Agenda> _agendas = new List<Agenda>();
+    private IList<Location> _locations = new List<Location>();
+    private IList<LocationConnection> _locationConnections = new List<LocationConnection>();
+
+    private IList<Enemy> _enemies = new List<Enemy>();
+    private IList<Player> _players = new List<Player>();
+
+    // Player Objects
+
+    private IList<PlayerCard> _playerCards = new List<PlayerCard>();
+
+    private IList<PlayerCard> _deck = new List<PlayerCard>();
+    private IList<PlayerCard> _hand = new List<PlayerCard>();
+    private IList<PlayerCard> _graveyard = new List<PlayerCard>();
+
+    // Game status
+
+    private int _currentActorAction = 0;
+
+    // Properties
+
+    public string GameScenarioId
+    {
+        get
+        {
+            return _gameScenario.ID;
+        }
+    }
+
+    public Player ActivePlayer { get; set; }
+
+
+    // Methods
+
+    public async Task SetGameScenario(GameScenario gameScenario)
+    {
+        _gameScenario = gameScenario;
+
+        StateHasChanged();
+    }
+
+    public async Task SetActivePlayer(Player player)
+    {
+        ActivePlayer = player;
+    }
+
+    public int GetTurnNo()
+    {
+        return _gameScenario.TurnNo;
+    }
+
+    public void SetTurnNo(int turnNo, string playerId)
+    {
+        _gameScenario.TurnNo = turnNo;
+
+        _gameScenario.CurrentActor = _players.FirstOrDefault(p => p.ID == playerId)?.ID;
+        _gameScenario.CurrentActorType = "player";
+        _currentActorAction = 0;
+        _gameScenario.ActionsUsed = 0;
+
+        StateHasChanged();
+
+        _blzCanvas.ShowSelectedActor(_gameScenario.CurrentActor, _gameScenario.CurrentActorType);
+    }
+
+    public void SetCurrentActor(string actorId, string actorType)
+    {
+        _gameScenario.CurrentActor = actorId;
+        _gameScenario.CurrentActorType = actorType;
+        _currentActorAction = 0;
+        _gameScenario.ActionsUsed = 0;
+
+        StateHasChanged();
+
+        _blzCanvas.ShowSelectedActor(_gameScenario.CurrentActor, _gameScenario.CurrentActorType);
+    }
+
+    public async Task AddActs(IList<Act> acts)
+    {
+        _acts = acts.OrderBy(a => a.SequenceNo).ToList();
+
+        if (!string.IsNullOrEmpty(_gameScenario.AgendaId))
+        {
+            foreach (Act act in _acts)
+            {
+                if (act.ID == _gameScenario.ActId)
+                {
+                    _currentAct = act;
+                    break;
+                }
+            }
+
+        }
+
+        if (_currentAct == null) _currentAct = _acts.First();
+
+        StateHasChanged();
+    }
+
+    public async Task AddAgendas(IList<Agenda> agendas)
+    {
+        _agendas = agendas.OrderBy(a => a.SequenceNo).ToList();
+
+        if (!string.IsNullOrEmpty(_gameScenario.AgendaId))
+        {
+            foreach (Agenda agenda in _agendas)
+            {
+                if (agenda.ID == _gameScenario.AgendaId)
+                {
+                    _currentAgenda = agenda;
+                    break;
+                }
+            }
+
+        }
+
+        if (_currentAgenda == null) _currentAgenda = agendas.First();
+
+        StateHasChanged();
+    }
+
+    public async Task AddLocations(IList<Location> locations)
+    {
+        _locations = locations;
+
+        foreach (Location location in _locations) await _blzCanvas.AddLocation(location);
+
+        await _blzCanvas.RecenterLocations();
+
+        foreach (Location location in _locations)
+        {
+            foreach (string connectedTo in location.ConnectedTo)
+            {
+                if (!_locationConnections.Any(lc => (lc.SourceLocationId == location.ID && lc.TargetLocationId == connectedTo) || (lc.TargetLocationId == location.ID && lc.SourceLocationId == connectedTo)))
+                {
+                    LocationConnection locationConnection = new LocationConnection()
+                    {
+                        SourceLocationId = location.ID,
+                        TargetLocationId = connectedTo
+                    };
+
+                    _locationConnections.Add(locationConnection);
+
+                    await _blzCanvas.AddLocationConnection(locationConnection);
+                }
+            }
+        }
+
+    }
+
+    public async Task AddEnemies(IList<Enemy> enemies)
+    {
+        _enemies = enemies;
+
+        foreach (Enemy enemy in enemies)
+        {
+            Location location = _locations.FirstOrDefault(l => l.ID == enemy.LocationId);
+
+            if (location != null) await _blzCanvas.AddEnemy(location, enemy);
+        }
+    }
+
+    public async Task AddPlayers(IList<Player> players)
+    {
+        Location defaultStartinglocation = _locations.FirstOrDefault(location => location.StartingLocation);
+
+        _players = players;
+
+        foreach (Player player in _players)
+        {
+            Location location = _locations.FirstOrDefault(l => l.ID == player.LocationId);
+
+            if (location != null) await _blzCanvas.AddPlayer(location, player);
+            else await _blzCanvas.AddPlayer(defaultStartinglocation, player);
+        }
+    }
+
+    public async Task AddPlayerCards(IList<PlayerCard> playerCards)
+    {
+        _playerCards = playerCards;
+
+        if (_gameScenario.TurnNo == 0)
+        {
+            _playerCards.Shuffle();
+
+            for (int i = 0; i < 7; i++) _hand.Add(_playerCards[i]);
+
+            for (int i = 7; i < _playerCards.Count; i++) _deck.Add(_playerCards[i]);
+
+            await Http.PutAsJsonAsync<IList<string>>($"PlayerHand/{_gameScenario.ID}", _hand.Select(c => c.ID).ToList());
+
+            await Http.PutAsJsonAsync<IList<string>>($"PlayerDeck/{_gameScenario.ID}", _deck.Select(c => c.ID).ToList());
+
+            await Http.PutAsync($"Players/{_gameScenario.ID}/Ready", null);
+        }
+
+        StateHasChanged();
+    }
+
+    public void BuildPlayerDeck(IList<string> playerDeck)
+    {
+        for (int i = 0; i < playerDeck.Count; i++)
+        {
+            PlayerCard card = _playerCards.FirstOrDefault(p => p.ID == playerDeck[i]);
+
+            if (card != null) _deck.Add(card);
+        }
+    }
+
+    public void BuildPlayerHand(IList<string> playerHand)
+    {
+        for (int i = 0; i < playerHand.Count; i++)
+        {
+            PlayerCard card = _playerCards.FirstOrDefault(p => p.ID == playerHand[i]);
+
+            if (card != null) _hand.Add(card);
+        }
+
+        StateHasChanged();
+    }
+
+    public void BuildPlayerGraveyard(IList<string> playerGrave)
+    {
+        for (int i = 0; i < playerGrave.Count; i++)
+        {
+            PlayerCard card = _playerCards.FirstOrDefault(p => p.ID == playerGrave[i]);
+
+            if (card != null) _graveyard.Add(card);
+        }
+    }
+
+    public async Task StorePlayerLocation(string playerId, string locationId)
+    {
+        HttpResponseMessage httpResponseMessage = await Http.PutAsync($"GameScenario/{GameScenarioId}/Location/{locationId}", null);
+    }
+
+    public async Task StorePlayerDamageToEnemy(string playerId, string enemyId)
+    {
+        HttpResponseMessage httpResponseMessage = await Http.PutAsJsonAsync<DamageRequest>($"GameScenario/{GameScenarioId}/DamagePerformed", new DamageRequest()
+        {
+            SourceType = "player",
+            SourceId = playerId,
+            TargetType = "enemy",
+            TargetId = enemyId
+        });
+    }
+
+    public async Task SetPlayerLocation(string playerId, string locationId)
+    {
+        Player player = _players.FirstOrDefault(p => p.ID == playerId);
+
+        if (player != null)
+        {
+            player.LocationId = locationId;
+
+            await _blzCanvas.SetPlayerLocation(playerId, locationId);
+        }
+
+        _gameScenario.ActionsUsed++;
+
+        StateHasChanged();
+    }
+
+    public async Task SetEnemyLocation(string enemyId, string locationId)
+    {
+        Enemy enemy = _enemies.FirstOrDefault(e => e.ID == enemyId);
+
+        if (enemy != null)
+        {
+            enemy.LocationId = locationId;
+
+            await _blzCanvas.SetEnemyLocation(enemyId, locationId);
+        }
+    }
+
+    public async Task PlayerDamagesEnemy(string playerId, string enemyId, int newHealth)
+    {
+        Enemy enemy = _enemies.FirstOrDefault(e => e.ID == enemyId);
+
+        if (enemy != null)
+        {
+            enemy.Health = newHealth;
+
+            StateHasChanged();
+        }
+    }
+
+    public async Task EnemyDamagesPlayer(string enemyId, string playerId, int newHealth, int newSanity)
+    {
+        Player player = _players.FirstOrDefault(p => p.ID == playerId);
+
+        if (player != null)
+        {
+            player.Health = newHealth;
+            player.Sanity = newSanity;
+
+            StateHasChanged();
+        }
+    }
+
+    public async Task ShowSelectedActor()
+    {
+        await _blzCanvas.ShowSelectedActor(_gameScenario.CurrentActor, _gameScenario.CurrentActorType);
+    }
+
+    public async Task StoreActToken(string playerId, string locationId)
+    {
+        HttpResponseMessage httpResponseMessage = await Http.PutAsJsonAsync<UpdateValueRequest>($"/GameScenario/{GameScenarioId}/ActToken/{locationId}", new UpdateValueRequest()
+        {
+            CurrentValue = _gameScenario.ActTokens
+        });
+    }
+
+    public async Task SetActTokenIncreased(string locationId, string actId, int tokens)
+    {
+        Console.WriteLine("Setting act tokens " + actId + ": " + tokens);
+
+        Location location = _locations.FirstOrDefault(l => l.ID == locationId);
+
+        if (location != null)
+        {
+            location.NoOfTokens--;
+            if (location.NoOfTokens < 0) location.NoOfTokens = 0;
+        }
+
+        if ((_currentAct == null) || (_currentAct.ID == actId)) _currentAct = _acts.FirstOrDefault(f => f.ID == actId);
+
+        _gameScenario.ActId = actId;
+        _gameScenario.ActTokens = tokens;
+
+        _gameScenario.ActionsUsed++;
+
+        StateHasChanged();
+    }
+
+    public async Task SetActProgressed(string locationId, string actId)
+    {
+        Console.WriteLine("Setting act to " + actId);
+
+        Location location = _locations.FirstOrDefault(l => l.ID == locationId);
+
+        if (location != null)
+        {
+            location.NoOfTokens--;
+            if (location.NoOfTokens < 0) location.NoOfTokens = 0;
+        }
+
+        if ((_currentAct == null) || (_currentAct.ID == actId)) _currentAct = _acts.FirstOrDefault(f => f.ID == actId);
+
+        _gameScenario.ActId = actId;
+        _gameScenario.ActTokens = 0;
+
+        foreach (Act act in _acts)
+        {
+            if (act.ID == actId)
+            {
+                _currentAct = act;
+                break;
+            }
+        }
+
+        _gameScenario.ActionsUsed++;
+
+        StateHasChanged();
+    }
+
+
+    public async Task SetAgendaTokenIncreased(string agendaId, int tokens)
+    {
+        Console.WriteLine("Setting agenda tokens " + agendaId + ": " + tokens);
+
+        if ((_currentAgenda == null) || (_currentAgenda.ID == agendaId)) _currentAgenda = _agendas.FirstOrDefault(f => f.ID == agendaId);
+
+        _gameScenario.AgendaId = agendaId;
+        _gameScenario.AgendaTokens = tokens;
+
+        StateHasChanged();
+    }
+
+    public async Task SetAgendaProgressed(string agendaId)
+    {
+        Console.WriteLine("Setting agenda to " + agendaId);
+
+        if ((_currentAgenda == null) || (_currentAgenda.ID == agendaId)) _currentAgenda = _agendas.FirstOrDefault(f => f.ID == agendaId);
+
+        _gameScenario.AgendaId = agendaId;
+        _gameScenario.AgendaTokens = 0;
+
+        foreach (Agenda agenda in _agendas)
+        {
+            if (agenda.ID == agendaId)
+            {
+                _currentAgenda = agenda;
+                break;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    public bool IsCurrrentLocation(string playerId, string locationId)
+    {
+        foreach (Player player in _players)
+        {
+            if (player.ID == playerId)
+            {
+                if (player.LocationId == locationId) return true;
+                else return false;
+            }
+        }
+
+        return false;
+    }
+}
